@@ -67,7 +67,7 @@ async function mail(jobObj) {
     }
   });
 }
-/*
+
 tabWillBeOpenedPromise
   .then(function () {
     let findTimeOut = tab.manage().setTimeouts({
@@ -77,48 +77,47 @@ tabWillBeOpenedPromise
   })
   .then(async function () {
     await login();
-    let newJobs = [];
-    for (let i = 0; i < companyList.length; i++) {
-      let jobUrl =
-        "https://www.linkedin.com/jobs/search/?f_TPR=r86400&keywords=" +
-        companyList[i] +
-        "&sortBy=DD";
-      await (await tab).get(jobUrl);
-
-      let jobsToBeNotified = await tab.findElements(
-        swd.By.css(".job-card-list")
-      );
-      for (let j = 0; j < jobsToBeNotified.length; j++) {
-        await jobsToBeNotified[j].click();
-        await tab;
-        //jobsToBeNotified[i].getText
-        // Name //.jobs-details-top-card__company-info
-        // Description // jobs-description-content__text
-        // link // jobs-apply-button
-        let name = await (
-          await tab.findElement(
-            swd.By.css(".jobs-details-top-card__content-container")
-          )
-        ).getText();
-        let Description = await (
-          await tab.findElement(swd.By.css(".jobs-description-content__text"))
-        ).getText();
-        let jobObj = {
-          name,
-          Description,
-        };
-        newJobs.push(jobObj);
-        mail(jobObj);
-      }
-    }
-
-    console.log(newJobs);
+    setInterval(checkForJobs, 10000);
   })
   .catch(function (err) {
     console.log(err);
   });
+async function checkForJobs() {
+  let newJobs = [];
+  for (let i = 0; i < companyList.length; i++) {
+    let jobUrl =
+      "https://www.linkedin.com/jobs/search/?f_TPR=r86400&keywords=" +
+      companyList[i] +
+      "&sortBy=DD";
+    await (await tab).get(jobUrl);
 
-  */
+    let jobsToBeNotified = await tab.findElements(swd.By.css(".job-card-list"));
+    for (let j = 0; j < jobsToBeNotified.length; j++) {
+      await jobsToBeNotified[j].click();
+      await tab;
+      //jobsToBeNotified[i].getText
+      // Name //.jobs-details-top-card__company-info
+      // Description // jobs-description-content__text
+      // link // jobs-apply-button
+      let name = await (
+        await tab.findElement(
+          swd.By.css(".jobs-details-top-card__content-container")
+        )
+      ).getText();
+      let Description = await (
+        await tab.findElement(swd.By.css(".jobs-description-content__text"))
+      ).getText();
+      let jobObj = {
+        name,
+        Description,
+      };
+      newJobs.push(jobObj);
+      mail(jobObj);
+    }
+  }
+
+  console.log(newJobs);
+}
 async function login() {
   return new Promise(async function (resolve, reject) {
     let inputUserBoxPromise = tab.findElement(swd.By.css("#username"));

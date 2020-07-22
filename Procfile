@@ -1,1 +1,1 @@
-worker: linkedin.js
+worker: node linkedin.js
