@@ -76,7 +76,7 @@ tabWillBeOpenedPromise
     return findTimeOut;
   })
   .then(async function () {
-    await login();
+    //await login();
     setInterval(checkForJobs, 10000);
   })
   .catch(function (err) {
