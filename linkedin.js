@@ -91,7 +91,10 @@ async function checkForJobs() {
       "&sortBy=DD";
     await (await tab).get(jobUrl);
 
-    let jobsToBeNotified = await tab.findElements(swd.By.css(".job-card-list"));
+    let jobsToBeNotified = await tab.findElements(
+      swd.By.css(".job-result-card")
+    );
+    console.log(jobsToBeNotified.length);
     for (let j = 0; j < jobsToBeNotified.length; j++) {
       await jobsToBeNotified[j].click();
       await tab;
@@ -100,17 +103,21 @@ async function checkForJobs() {
       // Description // jobs-description-content__text
       // link // jobs-apply-button
       let name = await (
-        await tab.findElement(
-          swd.By.css(".jobs-details-top-card__content-container")
-        )
+        await tab.findElement(swd.By.css(".topcard__title"))
+      ).getText();
+      //topcard__flavor-row
+      let subtitle = await (
+        await tab.findElement(swd.By.css(".topcard__flavor-row"))
       ).getText();
       let Description = await (
-        await tab.findElement(swd.By.css(".jobs-description-content__text"))
+        await tab.findElement(swd.By.css(".description"))
       ).getText();
       let jobObj = {
         name,
+        subtitle,
         Description,
       };
+      console.log(jobObj);
       newJobs.push(jobObj);
       mail(jobObj);
     }
