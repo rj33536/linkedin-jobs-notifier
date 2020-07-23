@@ -119,8 +119,8 @@ async function checkForJobs() {
           ) {
             //console.log(mailContent);
             countMails++;
-            if (countMails > maxMails) break;
-            mailContent += `<a href="${content[2]}"><h2>${content[0]}</h2></a><h3>${content[1]}</h3><hr />`;
+            if (countMails < maxMails)
+              mailContent += `<a href="${content[2]}"><h2>${content[0]}</h2></a><h3>${content[1]}</h3><hr />`;
             //if (j == 4 && i == 2) mail(mailContent);
           }
         })
