@@ -25,7 +25,7 @@ var transporter = nodemailer.createTransport({
     pass: gmailP,
   },
 });
-console.log(username + gmailP);
+//console.log(username + gmailP);
 let recievers = [];
 fs.readFile("mailingList.txt", "utf8", function (err, data) {
   if (err) throw err;
@@ -75,7 +75,7 @@ tabWillBeOpenedPromise
   })
   .then(async function () {
     //await login();
-    setInterval(checkForJobs, 30000);
+    setInterval(checkForJobs, 86400000);
   })
   .catch(function (err) {
     console.log(err);
@@ -85,7 +85,7 @@ async function checkForJobs() {
   let newJobs = [];
   let mailContent = "";
 
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 20; i++) {
     let jobUrl =
       "https://www.linkedin.com/jobs/search/?f_E=1%2C2&f_TPR=r86400&keywords=" +
       companyList[i] +
