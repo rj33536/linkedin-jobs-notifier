@@ -25,6 +25,7 @@ var transporter = nodemailer.createTransport({
     pass: gmailP,
   },
 });
+console.log(username + gmailP);
 let recievers = [];
 fs.readFile("mailingList.txt", "utf8", function (err, data) {
   if (err) throw err;
