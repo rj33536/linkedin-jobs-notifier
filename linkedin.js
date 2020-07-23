@@ -16,55 +16,49 @@ let tabWillBeOpenedPromise = tab.get(
 const csv = require("csv-parser");
 const fs = require("fs");
 const request = require("request");
-/*
-request(
-  "https://drive.google.com/file/d/1KhN37Ah3bSVd3Z0t_s1cVUkoNmPVogkA/view?usp=sharing",
-  function (error, response, body) {
-    console.error("error:", error); // Print the error if one occurred
-    console.log("statusCode:", response && response.statusCode); // Print the response status code if a response was received
-    console.log("body:", body); // Print the HTML for the Google homepage.
-  }
-);
-*/
+
 var transporter = nodemailer.createTransport({
   service: "gmail",
+  host: "smtp.gmail.com",
   auth: {
     user: username,
     pass: gmailP,
   },
 });
-let companyList = ["MICROSOFT"];
-let maxMails = 2,
+let recievers = [];
+fs.readFile("mailingList.txt", "utf8", function (err, data) {
+  if (err) throw err;
+  recievers = data.split("\n");
+});
+
+let companyList = [];
+let maxMails = 50,
   countMails = 0;
 fs.createReadStream("Companies.csv")
   .pipe(csv())
   .on("data", (row) => {
-    console.log(row);
     companyList.push(row.Company);
   })
   .on("end", () => {
     console.log("CSV file successfully processed");
   });
 
-companyList = ["MICROSOFT"];
-
 async function mail(jobObj) {
-  if (maxMails < countMails) return;
-  countMails++;
-  let reciever = username;
-  var mailOptions = {
-    from: username,
-    to: reciever,
-    subject: jobObj.name,
-    text: jobObj + "\n" + jobObj.Description,
-  };
+  recievers.forEach((reciever) => {
+    var mailOptions = {
+      from: username,
+      to: reciever,
+      subject: "Jobs for you",
+      html: jobObj,
+    };
 
-  transporter.sendMail(mailOptions, function (error, info) {
-    if (error) {
-      console.log(error);
-    } else {
-      console.log("Email sent: " + info.response);
-    }
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("Email sent: " + info.response);
+      }
+    });
   });
 }
 
@@ -75,77 +69,67 @@ tabWillBeOpenedPromise
     });
     return findTimeOut;
   })
+  .then(function () {
+    return tab.manage().window().maximize();
+  })
   .then(async function () {
     //await login();
-    setInterval(checkForJobs, 10000);
+    setInterval(checkForJobs, 30000);
   })
   .catch(function (err) {
     console.log(err);
   });
 async function checkForJobs() {
+  console.log("Checking jobs");
   let newJobs = [];
-  for (let i = 0; i < companyList.length; i++) {
+  let mailContent = "";
+
+  for (let i = 0; i < 2; i++) {
     let jobUrl =
-      "https://www.linkedin.com/jobs/search/?f_TPR=r86400&keywords=" +
+      "https://www.linkedin.com/jobs/search/?f_E=1%2C2&f_TPR=r86400&keywords=" +
       companyList[i] +
-      "&sortBy=DD";
+      "&sortBy=DD&redirect=false&position=1&pageNum=0";
     await (await tab).get(jobUrl);
 
     let jobsToBeNotified = await tab.findElements(
       swd.By.css(".job-result-card")
     );
-    console.log(jobsToBeNotified.length);
-    for (let j = 0; j < jobsToBeNotified.length; j++) {
+    for (let j = 0; j < Math.min(10, jobsToBeNotified.length); j++) {
+      //await tab;
       await jobsToBeNotified[j].click();
       await tab;
-      //jobsToBeNotified[i].getText
-      // Name //.jobs-details-top-card__company-info
-      // Description // jobs-description-content__text
-      // link // jobs-apply-button
-      let name = await (
-        await tab.findElement(swd.By.css(".topcard__title"))
-      ).getText();
-      //topcard__flavor-row
-      let subtitle = await (
-        await tab.findElement(swd.By.css(".topcard__flavor-row"))
-      ).getText();
-      let Description = await (
-        await tab.findElement(swd.By.css(".description"))
-      ).getText();
-      let jobObj = {
-        name,
-        subtitle,
-        Description,
-      };
-      console.log(jobObj);
-      newJobs.push(jobObj);
-      mail(jobObj);
+
+      let nameP = tab.findElement(swd.By.css(".topcard__title"));
+      let subtitleP = tab.findElement(swd.By.css(".topcard__flavor-row"));
+      let linkP = tab.findElement(
+        swd.By.css(".apply-button.apply-button--link")
+      );
+      Promise.all([nameP, subtitleP, linkP])
+        .then(async function (PArr) {
+          let nametextP = PArr[0].getText();
+          let subtitletextP = PArr[1].getText();
+          let linkhrefP = PArr[2].getAttribute("href");
+          return Promise.all([nametextP, subtitletextP, linkhrefP]);
+        })
+        .then((content) => {
+          if (
+            content[0] != "" &&
+            content[1] != "" &&
+            typeof content[0] == "string"
+          ) {
+            //console.log(mailContent);
+            countMails++;
+            if (countMails > maxMails) break;
+            mailContent += `<a href="${content[2]}"><h2>${content[0]}</h2></a><h3>${content[1]}</h3><hr />`;
+            //if (j == 4 && i == 2) mail(mailContent);
+          }
+        })
+        .catch(function (err) {
+          // console.log("link not found" + err);
+        });
     }
   }
 
-  console.log(newJobs);
-}
-async function login() {
-  return new Promise(async function (resolve, reject) {
-    let inputUserBoxPromise = tab.findElement(swd.By.css("#username"));
-    let inputPassBoxPromise = tab.findElement(swd.By.css("#password"));
-    let pArr = await Promise.all([inputUserBoxPromise, inputPassBoxPromise]);
-
-    let inputUserBox = pArr[0];
-    let inputPassBox = pArr[1];
-    let inputUserBoxWillBeFilledP = inputUserBox.sendKeys("rj33536@gmail.com");
-    let inputPassBoxWillBeFilledP = inputPassBox.sendKeys(password);
-
-    let willBeFilledArr = await Promise.all([
-      inputUserBoxWillBeFilledP,
-      inputPassBoxWillBeFilledP,
-    ]);
-    let loginButtonPromise = tab.findElement(
-      swd.By.css("button[data-litms-control-urn='login-submit']")
-    );
-
-    let loginButton = await loginButtonPromise;
-    let loginButtonClicked = await loginButton.click();
-    resolve();
-  });
+  console.log(mailContent);
+  mail(mailContent);
 }
